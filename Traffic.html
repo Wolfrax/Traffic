@@ -1,0 +1,444 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+<head>
+    <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+    <title>Router traffic monitor</title>
+    <script type="text/JavaScript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script language="javascript" type="text/javascript" src="../js/jquery/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="../js/jquery/jquery-ui-1.10.0.custom.js"></script>
+    <script language="javascript" type="text/javascript" src="../js/jquery/jquery.flot.stack.js"></script>
+    <script language="javascript" type="text/javascript" src="../js/jquery/jquery.flot.threshold.js"></script>
+    <script language="javascript" type="text/javascript" src="../js/jquery/jquery.flot.pie.js"></script>
+    <link rel="stylesheet" href="../js/jquery/css/ui-lightness/jquery-ui-1.10.0.custom.css">
+</head>
+<body>
+<!-- Insert your content here -->
+<h2>Router Traffic Monitor</h2>
+<table border="0" width="100%">
+    <tbody>
+    <tr>
+        <td colspan="1" rowspan="2" style="width:800;height:500px">
+            <h2>Period</h2><br>
+
+            <p class="periodControl">
+                <button>Refresh</button>
+            </p>
+            <div id="datePicker">
+                <label for="from">From</label>
+                <input id="dateFrom" name="dateFrom" type="text">
+                <label for="to">To</label> <input id="dateTo" name="dateTo" type="text">
+                <label for="threshold">Threshold</label> <input id="threshold" name="threshold" value="40" type="text">
+                <span id="trafficData"></span>
+            </div>
+            <br>
+
+            <div id="graph1" style="width:800px;height:500px"></div>
+        </td>
+        <td colspan="1" rowspan="2" align="center" style="width:200;height:500px">
+            <h2>Consumption</h2><br><br>
+
+            <div id="pie1" style="width:200px;height:250px"></div>
+            <br><br>
+
+            <div id="pie4" style="width:200px;height:250px"></div>
+        </td>
+    </tr>
+    <tr>
+        <td style="width:750;height:500px">
+            <h2>Non accumulated</h2><br><br><br><br><br>
+
+            <div id="graph4" style="width:800px;height:500px"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <h2>Last 24 hours</h2><br>
+
+            <p class="oneDayControl">
+                <button>Refresh</button>
+            </p>
+            <div id="graph2" style="width:800px;height:500px"></div>
+        </td>
+        <td align="center">
+            <div id="pie2" style="width:200px;height:200px"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <h2>Realtime (max 30 min)</h2><br>
+
+            <p class="sampleControl"><label for="sample">Sample rate (seconds)</label>
+                <input id="sampleRate" name="sampleRate" value="2" type="text"></p>
+
+            <div id="graph3" style="width:800px;height:500px"></div>
+        </td>
+        <td align="center">
+            <div id="pie3" style="width:250px;height:200px"></div>
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+<script type="text/javascript">
+$(function () {
+    var th = 40;
+    var startDatePeriod = new Date();
+    var stopDatePeriod = new Date();
+
+    UplinkVolume = [];
+    DownlinkVolume = [];
+    UplinkRate = [];
+    DownlinkRate = [];
+    Id = 0;
+    lastUpVol = 0;
+    lastDownVol = 0;
+    Period = 30 * 60; // 30 minutes expressed in seconds
+    SampleRate = 2; // seconds
+    PeriodLength = (Period / SampleRate).toFixed(0);
+
+    fetchedData = [];
+    fetchedDataOneDay = [];
+
+    function plotTraffic(series) {
+        trafficSum = [];
+        Downlink = [];
+        Uplink = [];
+        nonAccDown = [];
+        nonAccUp = [];
+        pie1Data = [];
+        pie4Data = [];
+        accUp = 0;
+        accDown = 0;
+        noOfDays = 0;
+        fetchedData = series;
+        firstElemUp = series[0][0][1];
+        firstElemDown = series[1][0][1];
+        firstElemSum = firstElemUp + firstElemDown;
+
+        for (var ind = 0; ind < series[0].length; ind++) {
+            series[0][ind][1] = series[0][ind][1] - firstElemUp;
+            series[1][ind][1] = series[1][ind][1] - firstElemDown;
+
+            trafficElem = new Array(2);
+            trafficElem[0] = series[0][ind][0];
+            trafficElem[1] = series[0][ind][1] + series[1][ind][1];
+            trafficSum.push(trafficElem);
+
+            ElemUp = new Array(2);
+
+            ElemUp[0] = series[0][ind][0];
+            ElemUp[1] = series[0][ind][1] - accUp;
+            if (ElemUp[1] < 0) ElemUp[1] = 0;
+            nonAccUp.push(ElemUp);
+
+            ElemDown = new Array(2);
+            ElemDown[0] = series[1][ind][0];
+            ElemDown[1] = series[1][ind][1] - accDown;
+            if (ElemDown[1] < 0) ElemDown[1] = 0;
+            nonAccDown.push(ElemDown);
+
+            if (series[0][ind][1] > accUp) {
+                accUp = series[0][ind][1];
+            }
+            else {
+                if (series[0][ind][1] < 0.1 * accUp)
+                    Uplink.push(accUp);
+                accUp = series[0][ind][1];
+            }
+            if (series[1][ind][1] > accDown) {
+                accDown = series[1][ind][1];
+            }
+            else {
+                if (series[1][ind][1] < 0.1 * accDown)
+                    Downlink.push(accDown);
+                accDown = series[1][ind][1];
+            }
+        }
+
+        for (var ind = 0; ind < Uplink.length; ind++) {
+            accUp += Uplink.pop();
+        }
+        for (var ind = 0; ind < Downlink.length; ind++) {
+            accDown += Downlink.pop();
+        }
+
+        $.plot($("#graph1"), [
+                    {data: series[0], yaxis: 1, lines: {show: true, fill: false, steps: true}, label: "Uplink volume (" + accUp.toFixed(2) + " GB)"},
+                    {data: series[1], yaxis: 1, lines: {show: true, fill: false, steps: true}, label: "Downlink volume (" + accDown.toFixed(2) + " GB)"},
+                    {data: trafficSum, yaxis: 1, lines: {show: true, fill: false, steps: true}, label: "Total volume (" + trafficSum[trafficSum.length - 1][1].toFixed(2) + " GB)", threshold: {below: th, color: "rgb(30, 180, 20)"}},
+                ],
+                {legend: {position: "nw"}, xaxis: {mode: "time"}, yaxes: [
+                    {min: 0}
+                ]});
+        $.plot($("#graph4"), [
+                    {data: nonAccUp, yaxis: 1, lines: {show: true, fill: true, steps: true}, label: "Uplink volume"},
+                    {data: nonAccDown, yaxis: 1, lines: {show: true, fill: true, steps: true}, label: "Downlink volume"}
+                ],
+                {legend: {position: "nw"}, xaxis: {mode: "time"}, yaxes: [
+                    {min: 0}
+                ]});
+        pie1Data[0] = {label: "Uplink", data: accUp};
+        pie1Data[1] = {label: "Downlink", data: accDown};
+        $.plot($("#pie1"), pie1Data,
+                {series: {pie: {show: true, radius: 1, label: {show: true, radius: 2 / 3, formatter: labelFormatter, threshold: 0.1}}}, legend: {show: false}});
+
+        consumed = accUp + accDown;
+        left = th - consumed;
+        if (left < 0) {
+            left = 0;
+        }
+        pie4Data[0] = {label: "Consumed", data: consumed};
+        pie4Data[1] = {label: "Left", data: left};
+        $.plot($("#pie4"), pie4Data,
+                {series: {pie: {show: true, radius: 1, label: {show: true, radius: 2 / 3, formatter: labelFormatter, threshold: 0.1}}}, legend: {show: false}});
+
+        FromDateMS = Date.parse($("#dateFrom").val());
+        FromDate = new Date();
+        FromDate.setTime(FromDateMS);
+        FromDate.setHours(0, 0, 0, 0);
+        today = new Date();
+        todayTime = today.toLocaleTimeString();
+        timeStr = $("#dateTo").val()
+        StartTime = Date.parse(timeStr);
+        StartTime = StartTime + (today.getTime() - StartTime)
+        noOfDays = (StartTime - FromDate.getTime()) / (1000 * 60 * 60 * 24);
+        //noOfDays = (Date.parse($("#dateTo").val()) - FromDate.getTime()) / (1000*60*60*24);
+        if (noOfDays < 1) {
+            aveSum = trafficSum[trafficSum.length - 1][1];
+        }
+        else {
+            aveSum = trafficSum[trafficSum.length - 1][1] / noOfDays;
+        }
+        $("#trafficData").text(noOfDays.toFixed(1) + " days " + aveSum.toFixed(2) + " GB/day");
+    } // plotTraffic
+
+    function updateTraffic() {
+        var StartTime = new (Date);
+        StartTime.setHours(StartTime.getHours() - 1); // backdate 1 hour
+
+        var StopTime = new (Date);
+        if ($("#dateFrom").val() == $("#dateTo").val()) {
+            StartTime.setHours(0);
+        }
+        StartTime.setHours(0);
+        $.ajax({url: "/cgi-bin/Traffic.py",
+            method: 'GET',
+            data: {StartTime: $("#dateFrom").val() + ' ' + StartTime.toLocaleTimeString(),
+                StopTime: $("#dateTo").val() + ' ' + StopTime.toLocaleTimeString()},
+            dataType: 'json',
+            cache: false
+        }).done(function (series) {
+            plotTraffic(series)
+        }); // ajax
+
+        setTimeout(updateTraffic, 60 * 60 * 1000); // 1 hour
+    } // updateTraffic
+
+    function plotOneDay(series) {
+        oneDayDown = [];
+        oneDayUp = [];
+        oneDayTotal = [];
+        pieData = [];
+        fetchedDataOneDay = series;
+
+        oneDaySumUp = 0;
+        oneDaySumDown = 0;
+        for (var ind = series[0].length - 1; ind >= series[0].length - 24; ind--) {
+            ElemDown = new Array(2);
+            if (ind > 0) {
+                ElemDown[0] = series[1][ind][0];
+                ElemDown[1] = (series[1][ind][1] - series[1][ind - 1][1]);
+            }
+            else {
+                ElemDown[0] = series[1][0][0];
+                ElemDown[1] = series[1][0][1];
+            }
+
+            oneDaySumDown += ElemDown[1];
+            oneDayDown.push(ElemDown);
+
+            ElemUp = new Array(2);
+            if (ind > 0) {
+                ElemUp[0] = series[0][ind][0];
+                ElemUp[1] = (series[0][ind][1] - series[0][ind - 1][1]);
+            }
+            else {
+                ElemUp[1] = series[0][0][0];
+                ElemUp[1] = series[0][0][1];
+            }
+
+            oneDaySumUp += ElemUp[1];
+            oneDayUp.push(ElemUp);
+
+            ElemTotal = new Array(2);
+            if (ind > 0) {
+                ElemTotal[0] = series[0][ind][0];
+                ElemTotal[1] = ElemDown[1] + ElemUp[1];
+            }
+            else {
+                ElemTotal[0] = series[0][0][0];
+                ElemTotal[1] = ElemDown[1] + ElemUp[1];
+            }
+            oneDayTotal.push(ElemTotal);
+        }
+
+        $.plot($("#graph2"), [
+                    {data: oneDayUp, bars: {show: true, barWidth: 60 * 60 * 1000, align: "center"}, label: "24 hours uplink (" + oneDaySumUp.toFixed(2) + " GB)"},
+                    {data: oneDayDown, bars: {show: true, barWidth: 60 * 60 * 1000, align: "center"}, label: "24 hours downlink (" + oneDaySumDown.toFixed(2) + " GB)"}
+                ],
+                {legend: {position: "nw"}, series: {stack: true}, xaxis: {mode: "time"}});
+        pieData[0] = {label: "Uplink", data: oneDaySumUp};
+        pieData[1] = {label: "Downlink", data: oneDaySumDown};
+        $.plot($("#pie2"), pieData,
+                {series: {pie: {show: true, radius: 1, label: {show: true, radius: 2 / 3, formatter: labelFormatter, threshold: 0.1}}}, legend: {show: false}});
+
+    } // plotOneDay
+
+    function updateTrafficOneDay() {
+        var StartTime = new (Date);
+        StartTime.setDate(StartTime.getDate() - 1); // backdate 1 day
+        StartTime.setHours(StartTime.getHours() - 1); // backdate 1 hour
+        var StopTime = new (Date)
+
+        $.ajax({url: "/cgi-bin/Traffic.py",
+            method: 'GET',
+            data: {StartTime: $.datepicker.formatDate("yy-mm-dd", StartTime) + ' ' + StartTime.toLocaleTimeString(),
+                StopTime: $.datepicker.formatDate("yy-mm-dd", StopTime) + ' ' + StopTime.toLocaleTimeString()},
+            dataType: 'json',
+            cache: false
+        }).done(function (series) {
+            plotOneDay(series)
+        }); // ajax
+
+        setTimeout(updateTrafficOneDay, 60 * 60 * 1000); // 1 hour
+    } // updateTrafficOneDay
+
+    function updateTrafficRT() {
+        $.ajax({
+            url: "/cgi-bin/TrafficRT.py",
+            method: 'GET',
+            data: {sessionId: Id},
+            dataType: 'json',
+            cache: false,
+        }).done(function (series) {
+            // [SessionId, Time, UplinkVolume, DownlinkVolume, UplinkRate, DownlinkRate]
+
+            pieData = [];
+            Id = series[0];
+
+            UpVol = new Array(2);
+            UpVol[0] = series[1];
+            if (lastUpVol == 0)
+                lastUpVol = series[2];
+            UpVol[1] = (series[2] - lastUpVol);
+            UplinkVolume.push(UpVol);
+            if (UplinkVolume.length > PeriodLength)
+                UplinkVolume.shift();
+            lastUpVol = series[2];
+            upSum = 0;
+            for (var ind = 0; ind < UplinkVolume.length; ind++) {
+                upSum += UplinkVolume[ind][1];
+            }
+
+            DownVol = new Array(2);
+            DownVol[0] = series[1];
+            if (lastDownVol == 0)
+                lastDownVol = series[3];
+            DownVol[1] = (series[3] - lastDownVol);
+            DownlinkVolume.push(DownVol);
+            if (DownlinkVolume.length > PeriodLength)
+                DownlinkVolume.shift();
+            lastDownVol = series[3];
+            downSum = 0;
+            for (var ind = 0; ind < DownlinkVolume.length; ind++) {
+                downSum += DownlinkVolume[ind][1];
+            }
+
+            UpRate = new Array(2);
+            UpRate[0] = series[1];
+            UpRate[1] = series[4];
+            UplinkRate.push(UpRate);
+            if (UplinkRate.length > PeriodLength)
+                UplinkRate.shift();
+
+            DownRate = new Array(2);
+            DownRate[0] = series[1];
+            DownRate[1] = series[5];
+            DownlinkRate.push(DownRate);
+            if (DownlinkRate.length > PeriodLength)
+                DownlinkRate.shift();
+
+            $.plot($("#graph3"), [
+                        {data: UplinkVolume, lines: {show: true, fill: true}, label: "Uplink volume (" + (upSum / 1024).toFixed(1) + " kB)"},
+                        {data: DownlinkVolume, lines: {show: true, fill: true}, label: "Downlink volume (" + (downSum / 1024).toFixed(1) + " kB)"},
+                        {data: UplinkRate, yaxis: 2, label: "Uplink rate (" + UpRate[1] + " kbps)"},
+                        {data: DownlinkRate, yaxis: 2, label: "Downlink rate (" + DownRate[1] + " kbps)"}
+                    ],
+                    {legend: {position: "nw"}, xaxis: {mode: "time"}, yaxes: [
+                        {min: 0 },
+                        { position: "right", min: 0}
+                    ]});
+            pieData[0] = {label: "Uplink", data: upSum};
+            pieData[1] = {label: "Downlink", data: downSum};
+            $.plot($("#pie3"), pieData,
+                    {series: {pie: {show: true, radius: 1, label: {show: true, radius: 2 / 3, formatter: labelFormatter, threshold: 0.1}}}, legend: {show: false}});
+        }); // ajax
+
+        setTimeout(updateTrafficRT, SampleRate * 1000); // seconds
+    } // updateTrafficRT
+
+    //startDatePeriod.setDate(startDatePeriod.getDate() - 7); // backdate 7 days
+    startDatePeriod.setDate(1); // 1st day if current month
+    startDatePeriod.setHours(0, 0, 0, 0); // beginning of day
+    $.datepicker.formatDate("yy-mm-dd", startDatePeriod);
+    $.datepicker.formatDate("yy-mm-dd", stopDatePeriod);
+    $("#dateFrom").val($.datepicker.formatDate("yy-mm-dd", startDatePeriod));
+    $("#dateTo").val($.datepicker.formatDate("yy-mm-dd", stopDatePeriod));
+
+    $("#dateFrom").datepicker({
+        maxDate: "0d", defaultDate: "-7d", dateFormat: "yy-mm-dd", onClose: function (selectedDate) {
+            $("#dateTo").datepicker("option", "minDate", selectedDate);
+            updateTraffic();
+        }
+    }); //datepicker
+
+    $("#dateTo").datepicker({
+        maxDate: "0d", defaultDate: "0d", dateFormat: "yy-mm-dd", onClose: function (selectedDate) {
+            $("#dateFrom").datepicker("option", "maxDate", selectedDate);
+            updateTraffic();
+        }
+    }); // datepicker
+
+    function labelFormatter(label, series) {
+        return "<div style='font-size:12pt; text-align:center; padding:2px; color:black;'>" + label + "<br/>" + Math.round(series.percent) + "%</div>";
+    } //labelFormatter
+
+    $("#threshold").change(function (e) {
+        e.preventDefault();
+        th = parseInt($(this).val());
+        plotTraffic(fetchedData);
+    });
+
+    $("#sampleRate").change(function (e) {
+        e.preventDefault();
+        SampleRate = parseInt($(this).val()); // seconds
+        PeriodLength = (Period / SampleRate).toFixed(0);
+    });
+
+    $(".oneDayControl button").click(function (e) {
+        e.preventDefault();
+        updateTrafficOneDay();
+    });
+    $(".periodControl button").click(function (e) {
+        e.preventDefault();
+        updateTraffic();
+    });
+
+    updateTraffic();
+    updateTrafficOneDay();
+    updateTrafficRT();
+
+});
+</script>
+</body>
+</html>
