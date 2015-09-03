@@ -11,7 +11,7 @@ Hence I set out to have traffic monitored and easily accessible.
 The result is shared by this project even though I would be surprised if anyone would be interested.
 I did this as a fun learning exercise, so it might seem to be an overkill but that's alright for me.
 
-![Screenshot](./RTM.tiff "Traffic Monitor")
+![Screenshot](./RTM.png "Traffic Monitor")
 
 ## Overview
 
