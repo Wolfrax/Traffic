@@ -11,27 +11,32 @@ Works with router FW version V100R001C07SP102, using RSA PKCS1 encryption of pas
 Previous version of the router used only base64 encoding of password
 """
 
-import urllib, urllib2, base64, cookielib
+import urllib
+import urllib2
+import base64
+import cookielib
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
-from threading import Event, Thread
 from inspect import isfunction
-import cgi
 import json
 import datetime
-import calendar
+import time
+import sys
+import os
+import timer
+
 
 class RtrB593():
 
-    def __init__(self, url='http://192.168.1.1', Name='admin', PW='admin'):
+    def __init__(self, url='http://192.168.1.1', name='admin', pw='admin'):
         if url[-1] == '/':
-            url = url[:-1] # Remove any trailing /
+            url = url[:-1]  # Remove any trailing /
 
         self.url1 = url + "/index/login.cgi"
         self.url2 = url + "/html/status/waninfo.asp"
 
-        self.Name = Name
-        self.PW = PW
+        self.Name = name
+        self.PW = pw
 
         # Huawei router version V100R001C07SP102 uses RSA PKCS1 type 2 encryption and transfer the result in base64 encoding
         # Previous version of the router did not use RSA, only base64 encoding of the password
@@ -61,7 +66,7 @@ class RtrB593():
         key_text = open("rt.pem", "r").read()
         public_key = RSA.importKey(key_text)
         cipher = PKCS1_v1_5.new(public_key)
-        enc = cipher.encrypt(PW)
+        enc = cipher.encrypt(self.PW)
         self.PWRSAB64 = base64.b64encode(enc)
 
         self.cookieJar = cookielib.LWPCookieJar()
@@ -92,7 +97,7 @@ class RtrB593():
         f.close()
         self.loggedin = True
 
-    def _getData(self):
+    def _getdata(self):
         if not self.loggedin:
             self._login()
 
@@ -103,15 +108,15 @@ class RtrB593():
         except:
             pass
 
-        if '<title>replace</title>' in self.data: # Title of page when logged out, 60 seconds
+        if '<title>replace</title>' in self.data:  # Title of page when logged out, 60 seconds
             self.loggedin = False
-            self._getData()
+            self._getdata()
 
         f.close()
 
-    def _getStr(self, str):
-        if self.data == None:
-            self._getData()
+    def _getstr(self, str):
+        if self.data is None:
+            self._getdata()
 
         i = self.data.find(str)
         if i > 0:
@@ -120,59 +125,38 @@ class RtrB593():
         else:
             return None
 
-    def _getUplinkVolume(self):
-        s = self._getStr("'upvolume' : '")
-        return float(s) if s != None else 0.0
+    def _getuplinkvolume(self):
+        s = self._getstr("'upvolume' : '")
+        return float(s) if s is not None else 0.0
 
-    def _getDownlinkVolume(self):
-        s = self._getStr("'downvolume' : '")
-        return float(s) if s != None else 0.0
+    def _getdownlinkvolume(self):
+        s = self._getstr("'downvolume' : '")
+        return float(s) if s is not None else 0.0
 
-    def _getUplinkRate(self):
-        s = self._getStr("'uprate' : '")
-        return float(s) if s != None else 0.0
+    def _getuplinkrate(self):
+        s = self._getstr("'uprate' : '")
+        return float(s) if s is not None else 0.0
 
-    def _getDownlinkRate(self):
-        s = self._getStr("'downrate' : '")
-        return float(s) if s != None else 0.0
+    def _getdownlinkrate(self):
+        s = self._getstr("'downrate' : '")
+        return float(s) if s is not None else 0.0
 
-    def _getIPAddr(self):
-        s = self._getStr("'dataip' : '")
-        return s if s != None else ""
+    def _getipaddr(self):
+        s = self._getstr("'dataip' : '")
+        return s if s is not None else ""
 
-    def getSessionId(self):
+    def getsessionid(self):
         for cookie in self.cookieJar:
             if cookie.name == 'SessionID_R3':
                 return int(cookie.value)
 
     def read(self):
         self._close()
-        return {'uplink': self._getUplinkVolume(),
-                'downlink': self._getDownlinkVolume(),
-                'uplink rate': self._getUplinkRate(),
-                'downlink rate': self._getDownlinkRate(),
-                'IP address': self._getIPAddr()}
-
-class RepeatTimer(Thread):
-    def __init__(self, interval, function, iterations=0, args=[], kwargs={}):
-        Thread.__init__(self)
-        self.interval = interval
-        self.function = function
-        self.iterations = iterations
-        self.args = args
-        self.kwargs = kwargs
-        self.finished = Event()
-
-    def run(self):
-        count = 0
-        while not self.finished.is_set() and (self.iterations <= 0 or count < self.iterations):
-            self.finished.wait(self.interval)
-            if not self.finished.is_set():
-                self.function(*self.args, **self.kwargs)
-                count += 1
-
-    def cancel(self):
-        self.finished.set()
+        return {'uplink': self._getuplinkvolume(),
+                'downlink': self._getdownlinkvolume(),
+                'uplink rate': self._getuplinkrate(),
+                'downlink rate': self._getdownlinkrate(),
+                'IP address': self._getipaddr()}
 
 
 class Router():
@@ -185,12 +169,13 @@ class Router():
         if interval > 0 and isfunction(function):
             self.rtr = RtrB593()
             self.callback = function
-            self.Timer = RepeatTimer(interval, self.router_timer)
+            self.Timer = timer.RepeatTimer(interval, self.router_timer)
             self.Timer.start()
             return
 
         if interval <= 0 and isfunction(function):
-            function()
+            self.rtr = RtrB593()
+            function(self.rtr.read(), self.rtr.getsessionid())
             return
 
         return
@@ -200,18 +185,19 @@ class Router():
 
     def router_timer(self):
         if self.callback is not None:
-            self.callback(self.read(), self.rtr.getSessionId())
+            self.callback(self.rtr.read(), self.rtr.getsessionid())
+
 
 def router_handler(data, id):
 
-    data['time'] = calendar.timegm(datetime.datetime.now().timetuple()) * 1000
+    data['time'] = time.mktime(datetime.datetime.now().timetuple()) * 1000
     data['session id'] = id
-
-    cgiParameters = cgi.FieldStorage()
-
-    print "Content-type: text/html"
-    print
     print json.dumps(data)
 
 if __name__ == '__main__':
-    Router(2, router_handler)
+    # Change working directory to where the script is, needed for B593 to read rt.pem when running as a daemon
+    # See http://stackoverflow.com/questions/595305/python-path-of-script
+    pathname = os.path.dirname(sys.argv[0])
+    os.chdir(os.path.abspath(pathname))
+
+    Router(0, router_handler)

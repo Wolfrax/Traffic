@@ -1,0 +1,91 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+    <title>Router traffic monitor</title>
+    <script type="text/javascript" src="js/traffic.js"></script>
+    <script type="text/javaScript" src="js/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.js"></script>
+    <script type="text/javascript" src="js/jquery-ui.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.stack.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.threshold.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.pie.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.time.js"></script>
+    <link rel="stylesheet" href="js/jquery-ui.css">
+    <link rel="stylesheet" href="js/traffic.css">
+</head>
+
+<body onload="MonIt();">
+
+<div id="header"><h2>Router Traffic Monitor</h2></div>
+
+<div id="pie1"></div>
+<div id="pie2"></div>
+
+<div id="perday">
+    <strong ><span id="trafficData" style="text-align:right"></span></strong>
+</div>
+
+<div id="datePicker">
+    <label for="dateFrom">From</label>
+    <input id="dateFrom" name="dateFrom" type="text">
+    <label for="dateTo">To</label>
+    <input id="dateTo" name="dateTo" type="text">
+</div>
+
+<div id="graph1"></div>
+<div id="graph2"></div>
+
+<div id="footer">Mats Melander (c)</div>
+
+<script type="text/javascript">
+function MonIt() {
+    var startDatePeriod = new Date();
+    var stopDatePeriod = new Date();
+    var dateFrom = $("#dateFrom"), dateTo = $("#dateTo");
+
+    function updateTraffic() {
+        var startTime = new Date(dateFrom.val()).setHours(0); // from beginning of day
+        var stopTime  = new Date(dateTo.val()).setHours(24);  // to midnight
+
+        $.ajax({url: "/B593DB",
+            method: 'GET',
+            data: {StartTime: startTime,
+                   StopTime : stopTime},
+            dataType: 'json',
+            cache: false
+        }).done(function (series) {
+            plotTraffic(series)
+        });
+
+        setTimeout(updateTraffic, 60 * 60 * 1000); // 1 hour updates
+    } // updateTraffic
+
+    startDatePeriod.setDate(1);   // 1st day if current month
+    startDatePeriod.setHours(0);  // beginning of day
+    $.datepicker.formatDate("yy-mm-dd", startDatePeriod);
+    $.datepicker.formatDate("yy-mm-dd", stopDatePeriod);
+    dateFrom.val($.datepicker.formatDate("yy-mm-dd", startDatePeriod));
+    dateTo.val($.datepicker.formatDate("yy-mm-dd", stopDatePeriod));
+
+    dateFrom.datepicker({
+        maxDate: "0d", defaultDate: "-7d", dateFormat: "yy-mm-dd", onClose: function (selectedDate) {
+            dateTo.datepicker("option", "minDate", selectedDate);
+            updateTraffic();
+        }
+    });
+
+    dateTo.datepicker({
+        maxDate: "0d", defaultDate: "0d", dateFormat: "yy-mm-dd", onClose: function (selectedDate) {
+            dateFrom.datepicker("option", "maxDate", selectedDate);
+            updateTraffic();
+        }
+    });
+
+    updateTraffic();
+}
+</script>
+
+</body>
+</html>
+

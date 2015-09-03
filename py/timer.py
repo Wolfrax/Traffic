@@ -1,11 +1,7 @@
-#!/usr/bin/env python
-
-__author__ = 'Wolfrax'
+__author__ = 'mm'
 
 from threading import Event, Thread
-import B593
-import cgi
-import json
+
 
 class RepeatTimer(Thread):
     def __init__(self, interval, function, iterations=0, args=[], kwargs={}):
@@ -27,19 +23,3 @@ class RepeatTimer(Thread):
 
     def cancel(self):
         self.finished.set()
-
-class Router():
-    def __init__(self, interval=0):
-        self.rtr = B593.RtrB593()
-        if interval > 0:
-            self.Timer = RepeatTimer(interval, self.RtrTimer)
-            self.Timer.start()
-
-    def read(self):
-        print self.rtr.read()
-
-    def RtrTimer(self):
-        print self.rtr.read()
-
-if __name__ == '__main__':
-    Router()

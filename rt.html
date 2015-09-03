@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+    <meta content="text/html;charset=ISO-8859-1" http-equiv="Content-Type">
+    <title>Router traffic realtime</title>
+    <script type="text/javascript" src="js/traffic.js"></script>
+    <script type="text/javaScript" src="js/jquery-1.8.3.min.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.time.js"></script>
+    <script type="text/javascript" src="js/jquery.flot.pie.js"></script>
+    <script type="text/javascript" src="js/highcharts.js"></script>
+    <script type="text/javascript" src="js/highcharts-more.js"></script>
+    <script type="text/javascript" src="js/solid-gauge.js"></script>
+    <link rel="stylesheet" href="js/traffic.css">
+</head>
+
+<body onload="MonIt();">
+
+<div id="header"><h2>Router Traffic Monitor (real time)</h2></div>
+
+<div id="graph1"></div>
+
+<div id="pie1"></div>
+<div id="pie2"></div>
+
+<div id="gauge-up"></div>
+<div id="gauge-down"></div>
+
+<div id="footer">Mats Melander (c)</div>
+
+<script type="text/javascript">
+function MonIt() {
+    var Id;
+    var r = new Router();
+
+    function updateTraffic() {
+        $.ajax({url: "/B593",
+            method: 'GET',
+            data: {sessionId: Id},
+            dataType: 'json',
+            cache: false
+        }).done(function (series) {
+            Id = series["session id"];
+            plotRealTime(series, r)
+        });
+
+        setTimeout(updateTraffic, 2 * 1000); // Every 2 secs
+    }
+
+    updateTraffic();
+}
+</script>
+
+</body>
+</html>
+

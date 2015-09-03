@@ -1,0 +1,86 @@
+#header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 800px;
+    height: 50px;
+    padding: 10px;
+}
+#pie1 {
+    position: absolute;
+    top: 60px;
+    left: 50px;
+    width:200px;
+    height:200px;
+    padding: 10px;
+}
+#pie2 {
+    position: absolute;
+    top: 60px;
+    left: 300px;
+    width:200px;
+    height:200px;
+    padding: 10px;
+}
+#perday {
+    position: absolute;
+    top: 260px;
+    left: 0;
+    width: 200px;
+    height: 50px;
+    padding: 10px;
+}
+#realtime {
+    position: absolute;
+    top: 310px;
+    left: 0;
+    width: 200px;
+    height: 50px;
+    padding: 10px;
+}
+#datePicker {
+    position: absolute;
+    top: 310px;
+    left: 0;
+    width: 800px;
+    height: 50px;
+    padding: 10px;
+}
+#graph1 {
+    position: absolute;
+    top: 360px;
+    left: 0;
+    width: 600px;
+    height: 300px;
+    padding: 10px;
+}
+#graph2 {
+    position: absolute;
+    top: 360px;
+    left: 600px;
+    width: 600px;
+    height: 300px;
+    padding: 10px;
+}
+#gauge-up {
+    position: absolute;
+    top: 20px;
+    left: 600px;
+    width: 300px;
+    height: 200px;
+}
+#gauge-down {
+    position: absolute;
+    top: 180px;
+    left: 600px;
+    width: 300px;
+    height: 200px;
+}
+#footer {
+    position: absolute;
+    top: 660px;
+    left: 0;
+    width: 800px;
+    heigh: 50px;
+    padding: 10px;
+}
