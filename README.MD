@@ -126,7 +126,7 @@ mongo database and must be removed and mongo restarted by
     $ sudo /etc/init.d/mongod restart
 
 This should not be necessary when enabling journaling (default enabled for 64-bit mongo, see 
-[http://docs.mongodb.org/master/tutorial/manage-journaling/]
+[http://docs.mongodb.org/master/tutorial/manage-journaling/](http://docs.mongodb.org/master/tutorial/manage-journaling/)
 
 ### Installation continued
 
