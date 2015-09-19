@@ -115,6 +115,19 @@ I did
     $ cd mongodb/mongo4pi
     $ sudo sh install.sh
 
+To enable journal (in case of unexpected reboot), I added to ´/etc/init.d/mongod' this row
+    
+    DAEMON_OPTS="$DAEMON_OPTS --journal"
+    
+If journal is not enabled and unexpected reboot happens a lock file exists and will prevent further operations vs the 
+mongo database and must be removed and mongo restarted by
+
+    $ sudo rm /var/lib/mongodb/mongod.lock
+    $ sudo /etc/init.d/mongod restart
+
+This should not be necessary when enabling journaling (default enabled for 64-bit mongo, see 
+[http://docs.mongodb.org/master/tutorial/manage-journaling/]
+
 ### Installation continued
 
 To install additional packages and tools, do
