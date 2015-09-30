@@ -44,6 +44,7 @@ class TrafficTweet():
         elif val >= 1024:
             return val/1024, "(%.1f MB)"
         else:
+            val = 0 if val < 0 else val  # Avoid negative values
             return val, "(%.0f kB)"
 
     def update(self, up, down):
