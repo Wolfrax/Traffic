@@ -107,13 +107,15 @@ class TrafficTweet():
                           datetime.datetime(1970, 1, 1)).total_seconds()*1000
             post = coll.find_one({"Time": {"$gte": start_time}})
 
-            if post is None:  # Might be none first day of month
+            if post is None:  # First day of month, current value not synched to DB
                 if not quiet:
                     app_log.warning('Null post at monthly tweet')
-                return  # Might be none first day of month
+                diff_month_up = 0
+                diff_month_down = 0
+            else:
+                diff_month_up = up - post['UplinkVolume']
+                diff_month_down = down - post['DownlinkVolume']
 
-            diff_month_up = up - post['UplinkVolume']
-            diff_month_down = down - post['DownlinkVolume']
             diff_month_sum = diff_month_up + diff_month_down
             diff_month_left = (40*1024**2) - diff_month_sum
 
