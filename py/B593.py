@@ -167,6 +167,11 @@ class Router():
             return
 
         if interval > 0 and isfunction(function):
+            # delay until 1 minute past the hour
+            t = datetime.datetime.now()
+            delay = (t.replace(t.year, t.month, t.day, t.hour+1, 2, 0, 0) - t).total_seconds()
+            time.sleep(delay)
+
             self.rtr = RtrB593()
             self.callback = function
             self.Timer = timer.RepeatTimer(interval, self.router_timer)
