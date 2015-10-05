@@ -169,7 +169,7 @@ class Router():
         if interval > 0 and isfunction(function):
             # delay until the hour
             t = datetime.datetime.now()
-            delay = (t.replace(t.year, t.month, t.day, t.hour+1, 0, 0, 0) - t).total_seconds()
+            delay = (t.replace(t.year, t.month, t.day, t.hour + 1, 0, 0, 0) - t).total_seconds()
             time.sleep(delay)
 
             self.rtr = RtrB593()
