@@ -1,6 +1,7 @@
 __author__ = 'mm'
 
 from threading import Event, Thread
+import time
 
 
 class RepeatTimer(Thread):
@@ -15,10 +16,13 @@ class RepeatTimer(Thread):
 
     def run(self):
         count = 0
+        offset = 0
         while not self.finished.is_set() and (self.iterations <= 0 or count < self.iterations):
-            self.finished.wait(self.interval)
+            self.finished.wait(self.interval - offset)  # Adjust for execution time of self.function
             if not self.finished.is_set():
+                t = time.time()
                 self.function(*self.args, **self.kwargs)
+                offset = time.time() - t
                 count += 1
 
     def cancel(self):
