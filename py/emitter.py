@@ -22,13 +22,13 @@ def router_handler(data, sessionid):
     Q.put(data)
 
 
-@app.route("/B593")
+@app.route("/traffic/B593")
 def b593rt():
     B593.Router(0, router_handler)
     return json.dumps(Q.get())
 
 
-@app.route("/B593DB")
+@app.route("/traffic/B593DB")
 def b593db():
     start_time = int(request.args.get('StartTime'))
     stop_time = int(request.args.get('StopTime'))

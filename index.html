@@ -48,7 +48,7 @@ function MonIt() {
         var startTime = new Date(dateFrom.val()).setHours(0); // from beginning of day
         var stopTime  = new Date(dateTo.val()).setHours(24);  // to midnight
 
-        $.ajax({url: "/B593DB",
+        $.ajax({url: "/traffic/B593DB",
             method: 'GET',
             data: {StartTime: startTime,
                    StopTime : stopTime},

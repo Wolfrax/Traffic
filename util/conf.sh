@@ -4,5 +4,5 @@ cp wolfrax.conf /etc/nginx/sites-available/ # assumes symbolic link from /etc/ng
 cp nginx.conf /etc/nginx/
 service nginx restart
 # Configure gunicorn
-cp gunicorn.conf /etc/supervisor/conf.d
+cp traffic_gunicorn.conf /etc/supervisor/conf.d
 supervisorctl restart gunicorn
