@@ -110,12 +110,12 @@ The content of my `/usr/local/etc/mongodb.conf`
 For installation see [https://emersonveenstra.net/mongodb-raspberry-pi/](MongoDB)
 I did
 
-    $ mkdir mongodb
     $ git clone https://github.com/svvitale/mongo4pi
-    $ cd mongodb/mongo4pi
+    $ cd mongo4pi
     $ sudo sh install.sh
 
-To enable journal (in case of unexpected reboot), I added to ´/etc/init.d/mongod' this row
+To enable journal (in case of unexpected reboot), I added to `/etc/init.d/mongod` this row (after the last
+`DAEMON_OPTS` row in the file)
     
     DAEMON_OPTS="$DAEMON_OPTS --journal"
     
@@ -139,11 +139,11 @@ To install additional packages and tools, do
     sudo apt-get install nginx (not in virtualenv)
     pip install gunicorn (in virtualenv)
     sudo apt-get install supervisor (not in virtualenv)
-    sudo pip install python-twitter (in virtualenv)
+    pip install python-twitter (in virtualenv)
 
 To permanently remove Apache2 from startup (using nginx instead) do `sudo update-rc.d -f apache2 remove`
 
-ngnix root is at '/usr/share/nginx/www'.
+ngnix root is at `/usr/share/nginx/html`.
 nginx is running as a daemon, control this through
 
     $ /etc/init.d/nginx status
@@ -156,19 +156,7 @@ supervisor is a handy tool for monitoring daemons, so see <http://supervisord.or
 Install and configure supervisor
 
     $ sudo apt-get install supervisor
-    $ sudo nano /etc/supervisor/conf.d/gunicorn.conf
-
-Add the following to the gunicorn.conf file, changing the paths for python and gunicorn to be where you installed them 
-and test_project_name to be replaced by the name of your project:
-
-    [program:gunicorn]
-    command = /home/pi/bin/python /home/pi/bin/gunicorn test_project_name.wsgi:application
-    directory = /home/pi/test_project_name
-    user = pi
-    autostart = true
-    autorestart = true
-    stdout_logfile = /var/log/supervisor/gunicorn.log
-    stderr_logfile = /var/log/supervisor/gunicorn_err.log
+    $ sudo ln -s /home/pi/app/Traffic/util/traffic_gunicorn.conf /etc/supervisor/conf.d/traffic_gunicorn.conf
 
 Restart supervisor to have it grab the changes
 

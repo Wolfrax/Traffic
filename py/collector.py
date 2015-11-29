@@ -13,7 +13,7 @@ import getopt
 import os
 from ConfigParser import SafeConfigParser
 import twitter
-from requests.packages import urllib3
+import urllib3
 
 
 class TrafficTweet():
